@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { getModuleBySlug } from "@/lib/modules-config";
+import { filterChecklist } from "@/lib/checklist-filter";
 import { useCase } from "@/contexts/case-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChecklistTab } from "@/components/modules/checklist-tab";
@@ -49,6 +50,11 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
   const SpeciesIcon = caseInfo.species === "chat" ? Cat : Dog;
   const checkedIds = getChecklist(slug);
   const answers = getAnswers(slug);
+
+  const contextualChecklist = useMemo(
+    () => filterChecklist(module.checklist, caseInfo),
+    [module.checklist, caseInfo]
+  );
 
   const questionLabels = useMemo(() => {
     const map: Record<string, string> = {};
@@ -107,7 +113,7 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
 
         <TabsContent value="checklist" className="mt-4">
           <ChecklistTab
-            items={module.checklist}
+            items={contextualChecklist}
             caseInfo={caseInfo}
             onChecklistChange={(checked) => setChecklist(slug, checked)}
           />
@@ -127,7 +133,7 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
           <ValidationTab
             moduleName={module.name}
             moduleSlug={slug}
-            checklistItems={module.checklist}
+            checklistItems={contextualChecklist}
             checkedIds={checkedIds}
             answers={answers}
             questionLabels={questionLabels}

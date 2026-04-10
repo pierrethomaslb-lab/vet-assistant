@@ -19,12 +19,25 @@ export const MODULES: ModuleConfig[] = [
       { id: "ana-2", label: "Duree des symptomes" },
       { id: "ana-3", label: "Historique medical consulte" },
       { id: "ana-4", label: "Vaccination / vermifugation a jour" },
-      {
-        id: "ana-5",
-        label:
-          "Examen general complet (T\u00b0, FC, FR, TRC, hydratation)",
-      },
+      { id: "ana-5", label: "Examen general complet (T°, FC, FR, TRC, hydratation)" },
       { id: "ana-6", label: "Examen cible selon motif" },
+      // Contextuels jeune animal
+      { id: "ana-7", label: "Statut vaccinal complet verifie (primo-vaccination)", young: true },
+      { id: "ana-8", label: "Parasitisme intestinal recherche", young: true },
+      // Contextuels senior
+      { id: "ana-9", label: "Bilan geriatrique envisage", senior: true },
+      { id: "ana-10", label: "Poids compare aux consultations precedentes", senior: true },
+      // Contextuels digestif
+      { id: "ana-11", label: "Palpation abdominale realisee", problemKeywords: ["vomissement", "diarrhee", "anorexie", "digestif", "mange plus", "regurgit"] },
+      { id: "ana-12", label: "Acces toxiques / corps etranger questionne", problemKeywords: ["vomissement", "regurgit", "mange plus", "corps etranger", "intoxication"] },
+      // Contextuels respiratoire
+      { id: "ana-13", label: "Auscultation thoracique bilaterale", problemKeywords: ["toux", "dyspnee", "respirat", "eternue", "jetage"] },
+      // Contextuels dermato
+      { id: "ana-14", label: "Raclage / trichogramme envisage", problemKeywords: ["prurit", "alopecie", "lesion", "dermato", "gratte", "peau"] },
+      // Chat specifique
+      { id: "ana-15", label: "Statut FIV/FeLV connu", species: ["chat"] },
+      // Chien specifique
+      { id: "ana-16", label: "Risque leishmaniose / ehrlichiose evalue (zone endemique)", species: ["chien"] },
     ],
     questionSteps: [
       {
@@ -131,19 +144,24 @@ export const MODULES: ModuleConfig[] = [
     icon: Microscope,
     checklist: [
       { id: "exa-1", label: "Examen justifie cliniquement" },
-      {
-        id: "exa-2",
-        label: "Consentement client obtenu (si couteux)",
-      },
-      {
-        id: "exa-3",
-        label: "Prelevement correct (jeune si besoin)",
-      },
+      { id: "exa-2", label: "Consentement client obtenu (si couteux)" },
+      { id: "exa-3", label: "Prelevement correct (jeune si besoin)" },
       { id: "exa-4", label: "Tubes / materiel appropries" },
-      {
-        id: "exa-5",
-        label: "Delais d'envoi respectes (si labo externe)",
-      },
+      { id: "exa-5", label: "Delais d'envoi respectes (si labo externe)" },
+      // Contextuels digestif
+      { id: "exa-6", label: "Radiographie abdominale (corps etranger ?)", problemKeywords: ["vomissement", "corps etranger", "occlusion", "mange plus"] },
+      { id: "exa-7", label: "Coproscopie envisagee", problemKeywords: ["diarrhee", "parasit", "selles"] },
+      // Contextuels urinaire
+      { id: "exa-8", label: "Bandelette urinaire + culot", problemKeywords: ["urinaire", "polyurie", "dysurie", "hematurie", "pipi"] },
+      // Senior
+      { id: "exa-9", label: "Biochimie renale + hepatique (bilan senior)", senior: true },
+      { id: "exa-10", label: "T4 / fructosamine si suspicion endocrinienne", senior: true },
+      // Jeune
+      { id: "exa-11", label: "Test parvovirose si diarrhee hemorragique", young: true, problemKeywords: ["diarrhee", "hemorrag", "sang"] },
+      // Chat
+      { id: "exa-12", label: "Snap FIV/FeLV si statut inconnu", species: ["chat"] },
+      // Chien
+      { id: "exa-13", label: "4Dx (ehrlichiose, anaplasmose, Lyme, dirofilariose)", species: ["chien"], problemKeywords: ["fievre", "abattement", "anemie", "tique"] },
     ],
     questionSteps: [
       {
@@ -200,19 +218,20 @@ export const MODULES: ModuleConfig[] = [
     icon: Target,
     checklist: [
       { id: "diag-1", label: "Tous les symptomes listes" },
-      {
-        id: "diag-2",
-        label: "Chronologie precise (debut, evolution)",
-      },
-      {
-        id: "diag-3",
-        label: "Elements epidemio (age, race, saison, voyage)",
-      },
-      {
-        id: "diag-4",
-        label: "Examens deja realises pris en compte",
-      },
+      { id: "diag-2", label: "Chronologie precise (debut, evolution)" },
+      { id: "diag-3", label: "Elements epidemio (age, race, saison, voyage)" },
+      { id: "diag-4", label: "Examens deja realises pris en compte" },
       { id: "diag-5", label: "Urgences vitales ecartees" },
+      // Jeune
+      { id: "diag-6", label: "Maladies infectieuses juveniles ecartees (parvo, coryza)", young: true },
+      { id: "diag-7", label: "Malformations congenitales considerees", young: true },
+      // Senior
+      { id: "diag-8", label: "Processus neoplasique envisage", senior: true },
+      { id: "diag-9", label: "Insuffisance organique recherchee", senior: true },
+      // Chat
+      { id: "diag-10", label: "PIF / typhus / calicivirose envisages", species: ["chat"], problemKeywords: ["fievre", "abattement", "diarrhee", "vomissement"] },
+      // Chien
+      { id: "diag-11", label: "Leptospirose / piroplasmose ecartees", species: ["chien"], problemKeywords: ["fievre", "ictere", "abattement", "urine foncee"] },
     ],
     questionSteps: [
       {
@@ -262,12 +281,18 @@ export const MODULES: ModuleConfig[] = [
     checklist: [
       { id: "poso-1", label: "Poids exact de l'animal" },
       { id: "poso-2", label: "Fonction renale / hepatique OK" },
-      {
-        id: "poso-3",
-        label: "Traitements en cours (interactions)",
-      },
+      { id: "poso-3", label: "Traitements en cours (interactions)" },
       { id: "poso-4", label: "Gestation / lactation" },
       { id: "poso-5", label: "Allergies connues" },
+      // Jeune
+      { id: "poso-6", label: "Dose adaptee au poids exact (pas d'extrapolation adulte)", young: true },
+      { id: "poso-7", label: "Molecules contre-indiquees chez le jeune verifiees", young: true },
+      // Senior
+      { id: "poso-8", label: "Ajustement dose si insuffisance renale", senior: true },
+      { id: "poso-9", label: "AINS a eviter si deshydrate ou IRC", senior: true },
+      // Chat
+      { id: "poso-10", label: "Toxicite chat verifiee (paracetamol, permethrines = INTERDIT)", species: ["chat"] },
+      { id: "poso-11", label: "Demi-vie prolongee chez le chat prise en compte", species: ["chat"] },
     ],
     questionSteps: [
       {
@@ -316,23 +341,16 @@ export const MODULES: ModuleConfig[] = [
       "Communication client, annonces et gestion des situations",
     icon: UserRound,
     checklist: [
-      {
-        id: "cli-1",
-        label: "Diagnostic explique en termes simples",
-      },
-      {
-        id: "cli-2",
-        label: "Pronostic evoque honnetement",
-      },
+      { id: "cli-1", label: "Diagnostic explique en termes simples" },
+      { id: "cli-2", label: "Pronostic evoque honnetement" },
       { id: "cli-3", label: "Couts annonces clairement" },
-      {
-        id: "cli-4",
-        label: "Alternatives proposees si pertinent",
-      },
-      {
-        id: "cli-5",
-        label: "Consentement eclaire obtenu",
-      },
+      { id: "cli-4", label: "Alternatives proposees si pertinent" },
+      { id: "cli-5", label: "Consentement eclaire obtenu" },
+      // Jeune
+      { id: "cli-6", label: "Prevention (vaccins, sterilisation) abordee", young: true },
+      // Senior
+      { id: "cli-7", label: "Qualite de vie discutee avec le proprietaire", senior: true },
+      { id: "cli-8", label: "Suivi regulier planifie (controles)", senior: true },
     ],
     questionSteps: [
       {

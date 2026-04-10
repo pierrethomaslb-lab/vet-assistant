@@ -3,6 +3,14 @@ import type { LucideIcon } from "lucide-react";
 export interface ChecklistItem {
   id: string;
   label: string;
+  /** Show only for these species */
+  species?: ("chien" | "chat")[];
+  /** Show only if problem matches one of these keywords */
+  problemKeywords?: string[];
+  /** Show only for young animals (keyword match on age) */
+  young?: boolean;
+  /** Show only for senior animals (keyword match on age) */
+  senior?: boolean;
 }
 
 export interface QuestionOption {
