@@ -124,6 +124,7 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
         <TabsContent value="validation" className="mt-4">
           <ValidationTab
             moduleName={module.name}
+            moduleSlug={slug}
             checklistItems={module.checklist}
             checkedIds={checkedIds}
             answers={answers}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { ChecklistItem } from "@/types/modules";
@@ -21,6 +21,7 @@ import {
 
 interface ValidationTabProps {
   moduleName: string;
+  moduleSlug: string;
   checklistItems: ChecklistItem[];
   checkedIds: Set<string>;
   answers: Record<string, string>;
@@ -30,6 +31,7 @@ interface ValidationTabProps {
 
 export function ValidationTab({
   moduleName,
+  moduleSlug,
   checklistItems,
   checkedIds,
   answers,
@@ -37,8 +39,8 @@ export function ValidationTab({
   caseInfo,
 }: ValidationTabProps) {
   const [doubt, setDoubt] = useState("");
-  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [whatsappSent, setWhatsappSent] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const caseContext = caseInfo
     ? `Espece: ${caseInfo.species}\nAge/Race/Poids: ${caseInfo.age || "Non precise"}\nMotif: ${caseInfo.problem}`
@@ -88,6 +90,34 @@ export function ValidationTab({
     }
 
     return parts.join("\n");
+  };
+
+  const saveCase = async (aiReco: string) => {
+    if (saved || !caseInfo) return;
+    try {
+      const checklistObj: Record<string, boolean> = {};
+      checklistItems.forEach((item) => {
+        checklistObj[item.id] = checkedIds.has(item.id);
+      });
+
+      await fetch("/api/cases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          species: caseInfo.species,
+          age_info: caseInfo.age || null,
+          problem: caseInfo.problem,
+          module_slug: moduleSlug,
+          checklist_data: checklistObj,
+          questions_data: answers,
+          doubt_text: doubt.trim() || null,
+          ai_recommendation: aiReco,
+        }),
+      });
+      setSaved(true);
+    } catch {
+      // silently fail — not critical
+    }
   };
 
   const handleAnalyse = async () => {
@@ -141,6 +171,13 @@ export function ValidationTab({
           .map((p) => p.text)
           .join("") ?? ""
       : null;
+
+  // Auto-save when AI response is complete
+  useEffect(() => {
+    if (aiText && !isLoading && !saved) {
+      saveCase(aiText);
+    }
+  }, [aiText, isLoading, saved]);
 
   return (
     <div className="space-y-6">
@@ -263,6 +300,12 @@ export function ValidationTab({
             ? "Envoye a la boss"
             : "Envoyer pour validation (WhatsApp)"}
         </Button>
+      )}
+
+      {saved && (
+        <p className="text-center text-xs text-emerald-600">
+          Cas sauvegarde dans l&apos;historique
+        </p>
       )}
 
       {!hasData && !doubt.trim() && (
