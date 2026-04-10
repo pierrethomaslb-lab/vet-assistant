@@ -1,7 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import type { ChecklistItem } from "@/types/modules";
+import type { CaseInfo } from "@/components/modules/case-intake";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -11,6 +14,9 @@ import {
   XCircle,
   Send,
   MessageSquare,
+  Smartphone,
+  Loader2,
+  Stethoscope,
 } from "lucide-react";
 
 interface ValidationTabProps {
@@ -19,6 +25,7 @@ interface ValidationTabProps {
   checkedIds: Set<string>;
   answers: Record<string, string>;
   questionLabels: Record<string, string>;
+  caseInfo?: CaseInfo;
 }
 
 export function ValidationTab({
@@ -27,11 +34,113 @@ export function ValidationTab({
   checkedIds,
   answers,
   questionLabels,
+  caseInfo,
 }: ValidationTabProps) {
   const [doubt, setDoubt] = useState("");
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [whatsappSent, setWhatsappSent] = useState(false);
 
-  const hasData =
-    checkedIds.size > 0 || Object.keys(answers).length > 0;
+  const caseContext = caseInfo
+    ? `Espece: ${caseInfo.species}\nAge/Race/Poids: ${caseInfo.age || "Non precise"}\nMotif: ${caseInfo.problem}`
+    : undefined;
+
+  const transportRef = useRef(
+    new DefaultChatTransport({
+      api: "/api/chat",
+      body: { moduleSlug: "validation", caseContext },
+    })
+  );
+
+  const { messages: aiMessages, sendMessage, status } = useChat({
+    transport: transportRef.current,
+  });
+
+  const isLoading = status === "streaming" || status === "submitted";
+
+  const hasData = checkedIds.size > 0 || Object.keys(answers).length > 0;
+
+  const buildContext = () => {
+    const parts: string[] = [];
+
+    if (caseInfo) {
+      parts.push(
+        `PATIENT: ${caseInfo.species}${caseInfo.age ? ` — ${caseInfo.age}` : ""}`
+      );
+      parts.push(`MOTIF: ${caseInfo.problem}`);
+    }
+
+    parts.push(`\nMODULE: ${moduleName}`);
+
+    if (checkedIds.size > 0) {
+      parts.push("\nCHECKLIST:");
+      checklistItems.forEach((item) => {
+        const done = checkedIds.has(item.id);
+        parts.push(`  ${done ? "[x]" : "[ ]"} ${item.label}`);
+      });
+    }
+
+    if (Object.keys(answers).length > 0) {
+      parts.push("\nPARCOURS QUESTIONS:");
+      Object.entries(answers).forEach(([stepId, answer]) => {
+        const label = questionLabels[stepId] ?? stepId;
+        parts.push(`  ${label} → ${answer}`);
+      });
+    }
+
+    return parts.join("\n");
+  };
+
+  const handleAnalyse = async () => {
+    const context = buildContext();
+    const prompt = doubt.trim()
+      ? `Voici le contexte complet du cas :\n\n${context}\n\nDOUTE DU VETERINAIRE:\n"${doubt}"\n\nAnalyse ce cas et donne ta recommandation.`
+      : `Voici le contexte complet du cas :\n\n${context}\n\nAnalyse ce cas et donne ta recommandation.`;
+
+    sendMessage({ text: prompt });
+  };
+
+  const handleWhatsApp = async () => {
+    const context = buildContext();
+    const aiReco =
+      aiMessages.length > 0
+        ? aiMessages[aiMessages.length - 1].parts
+            ?.filter((p) => p.type === "text")
+            .map((p) => p.text)
+            .join("") ?? ""
+        : "";
+
+    try {
+      const res = await fetch("/api/whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          context,
+          doubt: doubt.trim(),
+          aiRecommendation: aiReco,
+          moduleName,
+        }),
+      });
+      if (res.ok) {
+        setWhatsappSent(true);
+      }
+    } catch {
+      // Will show error later when WhatsApp is configured
+      alert(
+        "WhatsApp non configure. Ajoutez les variables TWILIO dans .env.local"
+      );
+    }
+  };
+
+  // Get latest AI response
+  const lastAiMessage =
+    aiMessages.length > 0 ? aiMessages[aiMessages.length - 1] : null;
+  const aiText =
+    lastAiMessage?.role === "assistant"
+      ? lastAiMessage.parts
+          ?.filter((p) => p.type === "text")
+          .map((p) => p.text)
+          .join("") ?? ""
+      : null;
 
   return (
     <div className="space-y-6">
@@ -54,11 +163,7 @@ export function ValidationTab({
                   ) : (
                     <XCircle className="h-4 w-4 text-muted-foreground/50" />
                   )}
-                  <span
-                    className={
-                      done ? "" : "text-muted-foreground"
-                    }
-                  >
+                  <span className={done ? "" : "text-muted-foreground"}>
                     {item.label}
                   </span>
                 </div>
@@ -66,9 +171,7 @@ export function ValidationTab({
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            Aucun element coche
-          </p>
+          <p className="text-sm text-muted-foreground">Aucun element coche</p>
         )}
       </div>
 
@@ -118,20 +221,49 @@ export function ValidationTab({
         />
       </div>
 
-      {/* Send button */}
+      {/* AI Analysis button */}
       <Button
         className="w-full gap-2 h-12 text-base"
-        disabled={!hasData && !doubt.trim()}
-        onClick={() => {
-          // Placeholder — will integrate WhatsApp/AI later
-          alert(
-            `Validation envoyee pour le module "${moduleName}". Integration IA et WhatsApp a venir.`
-          );
-        }}
+        disabled={(!hasData && !doubt.trim()) || isLoading}
+        onClick={handleAnalyse}
       >
-        <Send className="h-4 w-4" />
-        Envoyer pour validation
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Stethoscope className="h-4 w-4" />
+        )}
+        {isLoading ? "Analyse en cours..." : "Analyser avec l'IA"}
       </Button>
+
+      {/* AI Response */}
+      {aiText && (
+        <div className="rounded-xl border-l-4 border-l-primary bg-card p-5 shadow-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Stethoscope className="h-3.5 w-3.5" />
+            </div>
+            <h3 className="font-semibold text-sm">Recommandation IA</h3>
+          </div>
+          <div className="text-sm leading-relaxed whitespace-pre-wrap">
+            {aiText}
+          </div>
+        </div>
+      )}
+
+      {/* WhatsApp button */}
+      {aiText && (
+        <Button
+          variant="outline"
+          className="w-full gap-2 h-12 text-base border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+          onClick={handleWhatsApp}
+          disabled={whatsappSent}
+        >
+          <Smartphone className="h-4 w-4" />
+          {whatsappSent
+            ? "Envoye a la boss"
+            : "Envoyer pour validation (WhatsApp)"}
+        </Button>
+      )}
 
       {!hasData && !doubt.trim() && (
         <p className="text-center text-xs text-muted-foreground">

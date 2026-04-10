@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Bot, User } from "lucide-react";
+import { Stethoscope, User } from "lucide-react";
 
 interface MessageBubbleProps {
   role: "assistant" | "user";
@@ -10,30 +10,30 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
   return (
     <div
       className={cn(
-        "flex gap-3",
+        "flex gap-2.5",
         role === "user" ? "flex-row-reverse" : "flex-row"
       )}
     >
       <div
         className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-sm",
           role === "assistant"
-            ? "bg-primary/10 text-primary"
-            : "bg-muted text-muted-foreground"
+            ? "bg-primary text-primary-foreground"
+            : "bg-secondary text-secondary-foreground"
         )}
       >
         {role === "assistant" ? (
-          <Bot className="h-4 w-4" />
+          <Stethoscope className="h-4 w-4" />
         ) : (
           <User className="h-4 w-4" />
         )}
       </div>
       <div
         className={cn(
-          "max-w-[80%] rounded-lg px-4 py-3 text-sm",
+          "max-w-[85%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed shadow-sm",
           role === "assistant"
-            ? "bg-muted text-foreground"
-            : "bg-primary text-primary-foreground"
+            ? "rounded-tl-sm bg-card text-card-foreground border"
+            : "rounded-tr-sm bg-primary text-primary-foreground"
         )}
       >
         {content}

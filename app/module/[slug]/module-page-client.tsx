@@ -1,14 +1,24 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { notFound } from "next/navigation";
 import { getModuleBySlug } from "@/lib/modules-config";
+import { useCase } from "@/contexts/case-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChecklistTab } from "@/components/modules/checklist-tab";
 import { QuestionsTab } from "@/components/modules/questions-tab";
 import { ValidationTab } from "@/components/modules/validation-tab";
-import { ChevronLeft, ClipboardCheck, MessageCircle, ShieldCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  ChevronLeft,
+  ClipboardCheck,
+  MessageCircle,
+  ShieldCheck,
+  Dog,
+  Cat,
+} from "lucide-react";
 
 interface ModulePageClientProps {
   slug: string;
@@ -16,15 +26,29 @@ interface ModulePageClientProps {
 
 export function ModulePageClient({ slug }: ModulePageClientProps) {
   const module = getModuleBySlug(slug);
+  const router = useRouter();
+  const {
+    caseInfo,
+    getChecklist,
+    setChecklist,
+    getAnswers,
+    setAnswers,
+  } = useCase();
 
   if (!module) {
     notFound();
   }
 
-  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  // Redirect to home if no case started
+  if (!caseInfo) {
+    router.push("/");
+    return null;
+  }
 
   const Icon = module.icon;
+  const SpeciesIcon = caseInfo.species === "chat" ? Cat : Dog;
+  const checkedIds = getChecklist(slug);
+  const answers = getAnswers(slug);
 
   const questionLabels = useMemo(() => {
     const map: Record<string, string> = {};
@@ -43,6 +67,20 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
         <ChevronLeft className="h-4 w-4" />
         Retour
       </Link>
+
+      {/* Case context bar */}
+      <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm">
+        <SpeciesIcon className="h-4 w-4 text-primary" />
+        <span className="font-medium capitalize">{caseInfo.species}</span>
+        {caseInfo.age && (
+          <Badge variant="secondary" className="text-xs">
+            {caseInfo.age}
+          </Badge>
+        )}
+        <span className="text-muted-foreground truncate">
+          — {caseInfo.problem}
+        </span>
+      </div>
 
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -70,14 +108,16 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
         <TabsContent value="checklist" className="mt-4">
           <ChecklistTab
             items={module.checklist}
-            onChecklistChange={setCheckedIds}
+            onChecklistChange={(checked) => setChecklist(slug, checked)}
           />
         </TabsContent>
 
         <TabsContent value="questions" className="mt-4">
           <QuestionsTab
             steps={module.questionSteps}
-            onAnswersChange={setAnswers}
+            caseInfo={caseInfo}
+            moduleSlug={slug}
+            onAnswersChange={(a) => setAnswers(slug, a)}
           />
         </TabsContent>
 
@@ -88,6 +128,7 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
             checkedIds={checkedIds}
             answers={answers}
             questionLabels={questionLabels}
+            caseInfo={caseInfo}
           />
         </TabsContent>
       </Tabs>
