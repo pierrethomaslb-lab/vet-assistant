@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { QuestionStep, QuestionOption } from "@/types/modules";
@@ -17,13 +17,24 @@ interface QuestionsTabProps {
   steps: QuestionStep[];
   caseInfo?: CaseInfo;
   moduleSlug?: string;
+  moduleName?: string;
   onAnswersChange?: (answers: Record<string, string>) => void;
+}
+
+function buildCaseIntro(caseInfo: CaseInfo, moduleName: string): string {
+  const parts = [`Je vois que vous consultez pour un **${caseInfo.species}**`];
+  if (caseInfo.age) parts[0] += ` (${caseInfo.age})`;
+  parts[0] += `.`;
+  parts.push(`Motif : **${caseInfo.problem}**`);
+  parts.push(`\nJe vais vous guider sur le module **${moduleName}**. Commençons.`);
+  return parts.join("\n");
 }
 
 export function QuestionsTab({
   steps,
   caseInfo,
   moduleSlug,
+  moduleName,
   onAnswersChange,
 }: QuestionsTabProps) {
   const [freeTextInput, setFreeTextInput] = useState("");
@@ -33,16 +44,31 @@ export function QuestionsTab({
   const [guidedAnswers, setGuidedAnswers] = useState<Record<string, string>>(
     {}
   );
+  const [hasSentInit, setHasSentInit] = useState(false);
+
+  // Build initial message based on case
   const [localMessages, setLocalMessages] = useState<Message[]>(() => {
-    if (steps.length === 0) return [];
-    return [
-      {
-        id: "init",
+    const msgs: Message[] = [];
+
+    if (caseInfo && moduleName) {
+      msgs.push({
+        id: "case-intro",
+        role: "assistant",
+        content: buildCaseIntro(caseInfo, moduleName),
+        timestamp: new Date(),
+      });
+    }
+
+    if (steps.length > 0) {
+      msgs.push({
+        id: "init-question",
         role: "assistant",
         content: steps[0].question,
         timestamp: new Date(),
-      },
-    ];
+      });
+    }
+
+    return msgs;
   });
 
   const caseContext = caseInfo
@@ -62,24 +88,25 @@ export function QuestionsTab({
 
   const isLoading = status === "streaming" || status === "submitted";
 
+  // Auto-send case context to AI on first interaction so it knows the case
+  const sendInitContext = useCallback(() => {
+    if (hasSentInit || !caseInfo) return;
+    setHasSentInit(true);
+  }, [hasSentInit, caseInfo]);
+
   // Merge local guided messages with AI messages
   const allMessages: Message[] = [
     ...localMessages,
-    ...aiMessages
-      .filter((m) => {
-        // Skip the first user message if it duplicates a guided answer
-        return true;
-      })
-      .map((m) => ({
-        id: m.id,
-        role: m.role as "assistant" | "user",
-        content:
-          m.parts
-            ?.filter((p) => p.type === "text")
-            .map((p) => p.text)
-            .join("") ?? "",
-        timestamp: new Date(),
-      })),
+    ...aiMessages.map((m) => ({
+      id: m.id,
+      role: m.role as "assistant" | "user",
+      content:
+        m.parts
+          ?.filter((p) => p.type === "text")
+          .map((p) => p.text)
+          .join("") ?? "",
+      timestamp: new Date(),
+    })),
   ];
 
   const currentStep = steps.find((s) => s.id === currentStepId);
@@ -141,11 +168,21 @@ export function QuestionsTab({
     const text = freeTextInput.trim();
     if (!text || isLoading) return;
 
-    // Send to AI
-    sendMessage({ text });
+    // Prepend case context on first AI message
+    let messageText = text;
+    if (!hasSentInit && caseInfo) {
+      const guidedSummary = Object.keys(guidedAnswers).length > 0
+        ? `\n\nReponses guidees precedentes :\n${Object.entries(guidedAnswers)
+            .map(([, v]) => `- ${v}`)
+            .join("\n")}`
+        : "";
+      messageText = `[Contexte du cas : ${caseInfo.species}${caseInfo.age ? `, ${caseInfo.age}` : ""}, motif: ${caseInfo.problem}]${guidedSummary}\n\n${text}`;
+      setHasSentInit(true);
+    }
+
+    sendMessage({ text: messageText });
     setFreeTextInput("");
 
-    // If we were in guided flow, end it
     if (currentStepId) {
       const newAnswers = { ...guidedAnswers, [currentStepId]: text };
       setGuidedAnswers(newAnswers);
@@ -159,29 +196,37 @@ export function QuestionsTab({
     currentStepId,
     guidedAnswers,
     onAnswersChange,
+    hasSentInit,
+    caseInfo,
   ]);
 
   const handleReset = useCallback(() => {
-    setLocalMessages(
-      steps.length > 0
-        ? [
-            {
-              id: `reset-${Date.now()}`,
-              role: "assistant",
-              content: steps[0].question,
-              timestamp: new Date(),
-            },
-          ]
-        : []
-    );
+    const msgs: Message[] = [];
+    if (caseInfo && moduleName) {
+      msgs.push({
+        id: `case-intro-${Date.now()}`,
+        role: "assistant",
+        content: buildCaseIntro(caseInfo, moduleName),
+        timestamp: new Date(),
+      });
+    }
+    if (steps.length > 0) {
+      msgs.push({
+        id: `reset-${Date.now()}`,
+        role: "assistant",
+        content: steps[0].question,
+        timestamp: new Date(),
+      });
+    }
+    setLocalMessages(msgs);
     setCurrentStepId(steps[0]?.id ?? null);
     setGuidedAnswers({});
     setFreeTextInput("");
+    setHasSentInit(false);
     onAnswersChange?.({});
-    // Note: aiMessages from useChat persist — that's OK, they stay in context
-  }, [steps, onAnswersChange]);
+  }, [steps, caseInfo, moduleName, onAnswersChange]);
 
-  const guidedFinished = !currentStep && localMessages.length > 1;
+  const guidedFinished = !currentStep && localMessages.length > 1 && !localMessages.every(m => m.role === "assistant");
 
   return (
     <div className="flex flex-col">
@@ -239,7 +284,11 @@ export function QuestionsTab({
         <Input
           value={freeTextInput}
           onChange={(e) => setFreeTextInput(e.target.value)}
-          placeholder="Decrivez votre situation ou posez une question..."
+          placeholder={
+            caseInfo
+              ? `Question sur ce ${caseInfo.species} (${caseInfo.problem})...`
+              : "Decrivez votre situation ou posez une question..."
+          }
           className="h-12 text-base rounded-full px-4"
           disabled={isLoading}
         />

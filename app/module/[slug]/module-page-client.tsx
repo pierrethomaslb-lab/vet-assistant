@@ -108,6 +108,7 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
         <TabsContent value="checklist" className="mt-4">
           <ChecklistTab
             items={module.checklist}
+            caseInfo={caseInfo}
             onChecklistChange={(checked) => setChecklist(slug, checked)}
           />
         </TabsContent>
@@ -117,6 +118,7 @@ export function ModulePageClient({ slug }: ModulePageClientProps) {
             steps={module.questionSteps}
             caseInfo={caseInfo}
             moduleSlug={slug}
+            moduleName={module.name}
             onAnswersChange={(a) => setAnswers(slug, a)}
           />
         </TabsContent>
