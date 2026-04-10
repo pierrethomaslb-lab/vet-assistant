@@ -23,6 +23,7 @@ import {
   Stethoscope,
   ArrowRight,
   Play,
+  Smartphone,
 } from "lucide-react";
 
 const DEMO_CASE: CaseInfo = {
@@ -327,6 +328,88 @@ export function DemoClient() {
           </Card>
         </div>
       </div>
+
+      {/* WhatsApp validation */}
+      <Card className="border-2 border-emerald-200 bg-emerald-50/50">
+        <CardHeader className="p-5 sm:p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+              <Smartphone className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-base">Demande de validation senior</CardTitle>
+              <CardDescription className="text-xs mt-0.5">
+                Envoyer le resume du cas par WhatsApp pour validation
+              </CardDescription>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-white border p-4 text-sm font-mono leading-relaxed whitespace-pre-wrap text-muted-foreground">
+{`Demande validation — Cas #demo
+
+PATIENT: Chien — Labrador 3 ans, 28kg, male castre
+MOTIF: Diarrhee + vomissements depuis 48h, abattu, anorexie
+
+EXAMEN CLINIQUE:
+- T° 39.8°C, FC 110 bpm
+- Deshydratation 5-7%
+- Abdomen tendu, douloureux
+
+EXAMENS REALISES:
+[x] NFS → leucocytose
+[x] Biochimie → azotemia pre-renale legere
+[x] Radio abdo → RAS corps etranger
+[x] cPLI snap → POSITIF
+
+DIAGNOSTIC: Pancreatite aigue
+
+TRAITEMENT PROPOSE:
+- Fluidotherapie IV (Ringer lactate)
+- Maropitant 1mg/kg IV SID
+- Gabapentine 5mg/kg PO BID
+- Hospitalisation 48-72h
+
+Merci de valider la prise en charge.
+— VetAssistant`}
+          </div>
+
+          <a
+            href={`https://wa.me/?text=${encodeURIComponent(
+`Demande validation — Cas #demo
+
+PATIENT: Chien — Labrador 3 ans, 28kg, male castre
+MOTIF: Diarrhee + vomissements depuis 48h, abattu, anorexie
+
+EXAMEN CLINIQUE:
+- T° 39.8°C, FC 110 bpm
+- Deshydratation 5-7%
+- Abdomen tendu, douloureux
+
+EXAMENS REALISES:
+✓ NFS → leucocytose
+✓ Biochimie → azotemia pre-renale legere
+✓ Radio abdo → RAS corps etranger
+✓ cPLI snap → POSITIF
+
+DIAGNOSTIC: Pancreatite aigue
+
+TRAITEMENT PROPOSE:
+- Fluidotherapie IV (Ringer lactate)
+- Maropitant 1mg/kg IV SID
+- Gabapentine 5mg/kg PO BID
+- Hospitalisation 48-72h
+
+Merci de valider la prise en charge.
+— VetAssistant`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-medium text-white hover:bg-emerald-700 transition-colors"
+          >
+            <Smartphone className="h-4 w-4" />
+            Envoyer par WhatsApp
+          </a>
+        </CardHeader>
+      </Card>
 
       {/* CTA */}
       <Card className="border-2 border-primary/20 bg-primary/5">
