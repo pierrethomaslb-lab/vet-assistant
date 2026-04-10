@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Stethoscope, BookOpen, History } from "lucide-react";
+import { Stethoscope, BookOpen, History, FlaskConical } from "lucide-react";
 
 export function Header() {
   return (
@@ -13,6 +13,13 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
+          <Link
+            href="/demo"
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 transition-colors"
+          >
+            <FlaskConical className="h-4 w-4" />
+            Cas d'etude
+          </Link>
           <Link
             href="/admin"
             className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 transition-colors"
